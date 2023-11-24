@@ -25,13 +25,19 @@ async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
+
         const shopCollection = client.db("Shop_management").collection("Shop")
-        app.post('/shop', async (req, res) => {
+        // create shop related api
+        app.post('/createShop', async (req, res) => {
             const shop = req.body
             const result = await shopCollection.insertOne(shop)
             res.send(result)
         })
-        
+        app.get('/createShop', async (req, res) => {
+            const result = await shopCollection.find().toArray()
+            res.send(result)
+        })
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
