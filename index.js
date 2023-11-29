@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
+const jwt = require('jsonwebtoken')
 const app = express()
 const port = process.env.PORT || 5001;
 
@@ -29,6 +30,14 @@ async function run() {
         const shopCollection = client.db("Shop_management").collection("Shop")
         const userCollection = client.db("Shop_management").collection("user")
         const productCollection = client.db("Shop_management").collection('Product');
+
+
+        // Jwt Api
+        app.post('/jwt', async (req, res) => {
+            const user = req.body
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '4h' })
+            res.send({ token })
+        })
 
         app.post('/addProduct', async (req, res) => {
             const newProduct = req.body
@@ -72,6 +81,10 @@ async function run() {
             res.send(result)
         })
         // user related api 
+        app.get('/users', async (req, res) => {
+            const result = await userCollection.find().toArray()
+            res.send(result)
+        })
         app.post('/users', async (req, res) => {
             const user = req.body
             const query = { email: user.email }
@@ -83,7 +96,20 @@ async function run() {
                 res.send(result)
             }
         })
-        // create shop related api
+        // make admin 
+        app.patch('/users/admin/:id', async (req, res) => {
+            const id = req.params.id
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    role: 'admin'
+                }
+            }
+            const result = await userCollection.updateOne(filter, updateDoc)
+            res.send(result)
+        })
+
+        // create shop related api is here 
         app.post('/createShop', async (req, res) => {
             const newProduct = req.body;
             const result = await shopCollection.insertOne(newProduct);
