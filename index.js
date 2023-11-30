@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
 const jwt = require('jsonwebtoken')
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const app = express()
 const port = process.env.PORT || 5001;
 
@@ -25,13 +26,15 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
 
         const shopCollection = client.db("Shop_management").collection("Shop")
         const userCollection = client.db("Shop_management").collection("user")
         const productCollection = client.db("Shop_management").collection('Product');
         const cardCollection = client.db("OrderProduct").collection("card")
         const menuCollection = client.db("Shop_management").collection("Menu_collection")
+        const paymentCollection = client.db("payment_cart").collection("cart")
+
 
 
 
@@ -203,6 +206,42 @@ async function run() {
             const query = { _id: new ObjectId(id) };
             const result = await cardCollection.deleteOne(query)
             res.send(result)
+        })
+        // ----------payment----------------
+        app.post('/create-payment-intent', async (req, res) => {
+            const { price } = req.body
+            const amount = parseInt(price * 100);
+            // console.log('amount inside the intend ', amount)
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ["card"],
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+        })
+        app.get('/payments', VerifyToken, async (req, res) => {
+            const query = { email: req.params.email }
+            if (req.params.email == !req.decoded.email) {
+                return res.status(403).send({ message: 'forbidden access' })
+            }
+            const result = await paymentCollection.find(query).toArray()
+            res.send(result)
+        })
+        app.post('/payments', async (req, res) => {
+            const payment = req.body
+            const paymentResult = await paymentCollection.insertOne(payment)
+            // console.log('payment info', payment)
+
+            // Delete Each Item from the cart 
+            const query = {
+                _id: {
+                    $in: payment.cartIds.map(id => new ObjectId(id))
+                }
+            }
+            const deleteResult = await cardCollection.deleteMany(query)
+            res.send({ paymentResult, deleteResult })
         })
 
 
