@@ -30,6 +30,9 @@ async function run() {
         const shopCollection = client.db("Shop_management").collection("Shop")
         const userCollection = client.db("Shop_management").collection("user")
         const productCollection = client.db("Shop_management").collection('Product');
+        const cardCollection = client.db("OrderProduct").collection("card")
+        const menuCollection = client.db("Shop_management").collection("Menu_collection")
+
 
 
         // Jwt Api
@@ -157,6 +160,55 @@ async function run() {
             const result = await userCollection.deleteOne(query)
             res.send(result)
         })
+
+        // Product Related Api is Here 
+        app.get('/menu', async (req, res) => {
+            const result = await menuCollection.find().toArray();
+            res.send(result)
+        })
+        app.post('/menu', async (req, res) => {
+            const item = req.body
+            const result = await menuCollection.insertOne(item)
+            res.send(result)
+        })
+        app.delete('/menu/:id', VerifyToken, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            // console.log('Deleting menu item with ID:', id);
+            const query = { _id: new ObjectId(id) };
+            const result = await menuCollection.deleteOne(query);
+            // console.log('Delete result:', result);
+            res.send(result);
+        });
+        app.get('/menu/:_id', async (req, res) => {
+            const _id = req.params._id
+            const query = { id: new ObjectId(_id) }
+            const result = await menuCollection.findOne(query)
+            res.send(result)
+        })
+        // -----------------------------------------------------------
+
+
+        // carts collections 
+        app.get('/carts', async (req, res) => {
+            const result = await cardCollection.find().toArray()
+            res.send(result)
+        })
+        app.post('/carts', async (req, res) => {
+            const cartItem = req.body
+            const result = await cardCollection.insertOne(cartItem)
+            res.send(result)
+        })
+        app.delete('/carts/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) };
+            const result = await cardCollection.deleteOne(query)
+            res.send(result)
+        })
+
+
+
+
+
 
         // create shop related api is here 
         app.post('/createShop', async (req, res) => {
